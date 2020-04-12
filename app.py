@@ -47,6 +47,62 @@ def welcome():
         f"Temperature for date range (start to end dates in format yyyy-mm-dd: /api/v1.0/yyyy-mm-dd/yyyy-mm-dd"
     )
 
+
+# Stations route
+@app.route('/api/v1.0/stations')
+def stations():
+    session = Session(engine)
+    precipitation_measurements = [
+        Station.station, Station.name, Station.latitude, Station.longitude, Station.elevation]
+    query_result = session.query(*precipitation_measurements).all()
+    session.close()
+    stations = []
+    for station, name, lat, lon, el in query_result:
+        station_dict = {}
+        station_dict["Station"] = station
+        station_dict["Name"] = name
+        station_dict["Lat"] = lat
+        station_dict["Lon"] = lon
+        station_dict["Elevation"] = el
+        stations.append(station_dict)
+    return jsonify(stations)
+
+# Precipitation route
+@app.route('/api/v1.0/precipitation')
+def precipitation():
+    session = Session(engine)
+    precipitation_measurements = [measurement.date, measurement.prcp]
+    queryresult = session.query(*precipitation_measurements).all()
+    session.close()
+    precipitation = []
+    for date, prcp in queryresult:
+        precipitation_dict = {}
+        precipitation_dict["Date"] = date
+        precipitation_dict["Precipitation"] = prcp
+        precipitation.append(precipitation_dict)
+    return jsonify(precipitation)
+
+# Temperatures route
+@app.route('/api/v1.0/tobs')
+def tobs():
+    session = Session(engine)
+    latest_date = session.query(measurement.date).order_by(
+        measurement.date.desc()).first()[0]
+    lastest_12_months = dt.datetime.strptime(latest_date, '%Y-%m-%d')
+    date_param = dt.date(lastest_12_months.year - 1,
+                         lastest_12_months.month, lastest_12_months.day)
+    precipitation_measurements = [measurement.date, measurement.tobs]
+    query_result = session.query(
+        *precipitation_measurements).filter(measurement.date >= date_param).all()
+    session.close()
+    alltobs = []
+    for date, tobs in query_result:
+        tobs_dict = {}
+        tobs_dict["Date"] = date
+        tobs_dict["Tobs"] = tobs
+        alltobs.append(tobs_dict)
+    return jsonify(alltobs)
+
 # Start Date Parameter
 @app.route("/api/v1.0/<startdate>")
 def get_t_start(startdate):
@@ -79,61 +135,6 @@ def get_t_start_stop(startdate, enddate):
         tobs_dict["Average"] = avg
         alltobs.append(tobs_dict)
     return jsonify(alltobs)
-
-# Temperatures route
-@app.route('/api/v1.0/tobs')
-def tobs():
-    session = Session(engine)
-    latest_date = session.query(measurement.date).order_by(
-        measurement.date.desc()).first()[0]
-    lastest_12_months = dt.datetime.strptime(latest_date, '%Y-%m-%d')
-    date_param = dt.date(lastest_12_months.year - 1,
-                         lastest_12_months.month, lastest_12_months.day)
-    precipitation_measurements = [measurement.date, measurement.tobs]
-    query_result = session.query(
-        *precipitation_measurements).filter(measurement.date >= date_param).all()
-    session.close()
-    alltobs = []
-    for date, tobs in query_result:
-        tobs_dict = {}
-        tobs_dict["Date"] = date
-        tobs_dict["Tobs"] = tobs
-        alltobs.append(tobs_dict)
-    return jsonify(alltobs)
-
-#
-@app.route('/api/v1.0/stations')
-def stations():
-    session = Session(engine)
-    precipitation_measurements = [
-        Station.station, Station.name, Station.latitude, Station.longitude, Station.elevation]
-    query_result = session.query(*precipitation_measurements).all()
-    session.close()
-    stations = []
-    for station, name, lat, lon, el in query_result:
-        station_dict = {}
-        station_dict["Station"] = station
-        station_dict["Name"] = name
-        station_dict["Lat"] = lat
-        station_dict["Lon"] = lon
-        station_dict["Elevation"] = el
-        stations.append(station_dict)
-    return jsonify(stations)
-
-
-@app.route('/api/v1.0/precipitation')
-def precipitation():
-    session = Session(engine)
-    precipitation_measurements = [measurement.date, measurement.prcp]
-    queryresult = session.query(*precipitation_measurements).all()
-    session.close()
-    precipitation = []
-    for date, prcp in queryresult:
-        precipitation_dict = {}
-        precipitation_dict["Date"] = date
-        precipitation_dict["Precipitation"] = prcp
-        precipitation.append(precipitation_dict)
-    return jsonify(precipitation)
 
 
 if __name__ == '__main__':
